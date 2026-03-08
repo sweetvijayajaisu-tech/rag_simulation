@@ -1,0 +1,278 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>RAG Simulator</title>
+<style>
+body{
+font-family:Arial, sans-serif;
+background:#0f172a;
+color:white;
+margin:0;
+padding:0;
+}
+
+.container{
+max-width:1000px;
+margin:auto;
+padding:20px;
+}
+
+h1{
+text-align:center;
+margin-bottom:20px;
+}
+
+.card{
+background:#1e293b;
+padding:20px;
+margin-bottom:20px;
+border-radius:10px;
+box-shadow:0 4px 12px rgba(0,0,0,0.3);
+}
+
+textarea,input{
+width:100%;
+padding:10px;
+margin-top:10px;
+border-radius:6px;
+border:none;
+}
+
+button{
+margin-top:10px;
+padding:10px 15px;
+background:#3b82f6;
+border:none;
+border-radius:6px;
+color:white;
+cursor:pointer;
+}
+
+button:hover{
+background:#2563eb;
+}
+
+.step{
+margin-top:10px;
+background:#334155;
+padding:10px;
+border-radius:6px;
+}
+
+.chunk{
+background:#475569;
+padding:8px;
+margin:5px 0;
+border-radius:4px;
+}
+
+.vector{
+font-size:12px;
+color:#cbd5f5;
+}
+
+.answer{
+background:#16a34a;
+padding:10px;
+border-radius:6px;
+margin-top:10px;
+}
+</style>
+</head>
+
+<body>
+
+<div class="container">
+
+<h1>RAG Simulator</h1>
+
+<div class="card">
+<h3>1. Add Document</h3>
+<textarea id="docInput" rows="4" placeholder="Paste a document here..."></textarea>
+<button onclick="addDocument()">Add Document</button>
+</div>
+
+<div class="card">
+<h3>2. Chunking</h3>
+<button onclick="chunkDocuments()">Create Chunks</button>
+<div id="chunks"></div>
+</div>
+
+<div class="card">
+<h3>3. Create Embeddings</h3>
+<button onclick="createEmbeddings()">Generate Embeddings</button>
+<div id="embeddings"></div>
+</div>
+
+<div class="card">
+<h3>4. Vector Database</h3>
+<div id="vectorDB"></div>
+</div>
+
+<div class="card">
+<h3>5. Ask a Question</h3>
+<input id="query" placeholder="Ask something about the document..."/>
+<button onclick="search()">Search</button>
+<div id="retrieved"></div>
+<div id="answer"></div>
+</div>
+
+</div>
+
+<script>
+
+let documents = []
+let chunks = []
+let vectors = []
+
+function addDocument(){
+let text = document.getElementById("docInput").value
+documents.push(text)
+alert("Document added")
+document.getElementById("docInput").value=""
+}
+
+function chunkDocuments(){
+
+chunks=[]
+let chunkContainer=document.getElementById("chunks")
+chunkContainer.innerHTML=""
+
+documents.forEach(doc=>{
+
+let words=doc.split(" ")
+let size=20
+
+for(let i=0;i<words.length;i+=size){
+
+let chunk=words.slice(i,i+size).join(" ")
+chunks.push(chunk)
+
+let div=document.createElement("div")
+div.className="chunk"
+div.innerText=chunk
+
+chunkContainer.appendChild(div)
+
+}
+
+})
+
+}
+
+function fakeEmbedding(text){
+
+let vector=[]
+
+for(let i=0;i<5;i++){
+vector.push((Math.random()*1).toFixed(3))
+}
+
+return vector
+}
+
+function createEmbeddings(){
+
+vectors=[]
+
+let container=document.getElementById("embeddings")
+container.innerHTML=""
+
+chunks.forEach(chunk=>{
+
+let embedding=fakeEmbedding(chunk)
+
+vectors.push({
+text:chunk,
+vector:embedding
+})
+
+let div=document.createElement("div")
+div.className="chunk"
+div.innerHTML=chunk+"<div class='vector'>["+embedding+"]</div>"
+
+container.appendChild(div)
+
+})
+
+renderVectorDB()
+
+}
+
+function renderVectorDB(){
+
+let db=document.getElementById("vectorDB")
+db.innerHTML=""
+
+vectors.forEach(v=>{
+
+let div=document.createElement("div")
+div.className="chunk"
+div.innerText=v.text
+
+db.appendChild(div)
+
+})
+
+}
+
+function similarity(v1,v2){
+
+let score=0
+
+for(let i=0;i<v1.length;i++){
+score+=Math.abs(v1[i]-v2[i])
+}
+
+return score
+}
+
+function search(){
+
+let query=document.getElementById("query").value
+
+let queryVector=fakeEmbedding(query)
+
+let scores=vectors.map(v=>{
+
+return{
+text:v.text,
+score:similarity(queryVector,v.vector)
+}
+
+})
+
+scores.sort((a,b)=>a.score-b.score)
+
+let top=scores.slice(0,2)
+
+let retrieved=document.getElementById("retrieved")
+retrieved.innerHTML="<h4>Retrieved Chunks</h4>"
+
+top.forEach(t=>{
+let div=document.createElement("div")
+div.className="chunk"
+div.innerText=t.text
+retrieved.appendChild(div)
+})
+
+generateAnswer(top,query)
+
+}
+
+function generateAnswer(chunks,query){
+
+let text=chunks.map(c=>c.text).join(" ")
+
+let answer="Based on retrieved chunks: "+text
+
+let ans=document.getElementById("answer")
+ans.innerHTML="<div class='answer'>"+answer+"</div>"
+
+}
+
+</script>
+
+</body>
+</html>
